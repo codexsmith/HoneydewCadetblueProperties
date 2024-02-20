@@ -1,15 +1,14 @@
 // Dashboard.tsx
-import React from 'react';
-import Kanban from './Kanban';
+
+import Board from "./kanban/Board";
 
 const Dashboard = () => {
   return (
     <div>
       <h1>Dashboard Component</h1>
-
-      <Kanban></Kanban>
+      <Board />
     </div>
   );
-}
+};
 
 export default Dashboard;

@@ -1,8 +1,12 @@
 {
   "compilerOptions": {
+    // highly recommended (required by few utilities)
+    "strictNullChecks": true,
+    // this is the lowest supported standard library
+    //"lib": ["es2015"],
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "allowJs": false,
     "skipLibCheck": true,
     "esModuleInterop": false,

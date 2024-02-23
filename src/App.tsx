@@ -3,13 +3,26 @@ import { ChakraProvider, Box } from "@chakra-ui/react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Dashboard from "./Dashboard";
-import { KanbanProvider } from "./kanban/KanbanContext";
+// import { KanbanProvider } from "./kanban/KanbanContext";
+import { getFirestore } from 'firebase/firestore';
+import { FirestoreProvider, useFirebaseApp, AuthProvider } from 'reactfire';
+
+import { getAuth } from 'firebase/auth';
+
 
 function App() {
+  const firebaseApp = useFirebaseApp();
+  const auth = getAuth(firebaseApp);
+
+
+  const firestoreInstance = getFirestore(firebaseApp);
+
   return (
-    <ChakraProvider>
+    <FirestoreProvider sdk={firestoreInstance}>
+    <AuthProvider sdk={auth}>
+
+      <ChakraProvider>
       <Router>
-        <KanbanProvider>
           <Box display="flex">
             <Sidebar />
             <main
@@ -23,9 +36,10 @@ function App() {
               </Routes>
             </main>
           </Box>
-        </KanbanProvider>
       </Router>
-    </ChakraProvider>
+      </ChakraProvider>
+    </AuthProvider>
+    </FirestoreProvider>
   );
 }
 export default App;

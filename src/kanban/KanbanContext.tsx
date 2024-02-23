@@ -1,5 +1,5 @@
 import React, { createContext, useState, ReactNode } from "react";
-import { useDatabaseService } from "../database/FirebaseService";
+// import { useDatabaseService } from "../database/FirebaseService";
 import { KanbanContextType } from "../database/DataType";
 
 const initialKanbanData = {
@@ -32,7 +32,7 @@ export const KanbanProvider = ({ children }: KanbanProviderProps) => {
   const [kanbanData, setKanbanData] = useState(initialKanbanData);
 
   //TODO integrate db
-  const db = useDatabaseService();
+  // const db = useDatabaseService();
 
   const updateKanbanData = (
     partialData: Partial<KanbanContextType["kanbanData"]>

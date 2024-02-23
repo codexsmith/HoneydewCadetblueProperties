@@ -6,12 +6,33 @@ import { CardType } from "../database/DataType";
 import { useContext } from "react";
 import Column from "./Column";
 import { Box } from "@chakra-ui/react";
+import { useFirestore, useFirestoreCollectionData } from 'reactfire';
+import { collection } from 'firebase/firestore';
+
 
 function Board() {
-  const { kanbanData, updateKanbanData } = useContext(KanbanContext);
+  const firestore = useFirestore();
 
-  const [tasks, setTasks] = useState<CardType[]>(kanbanData.tasks);
-  const [columnsOrder, setColumnsOrder] = useState(kanbanData.columnOrder);
+  const boardCollectionRef = collection(firestore, "boards");
+  const { status: boardStatus, data: boardData } = useFirestoreCollectionData(boardCollectionRef, {
+    idField: 'id'  // Automatically adds document ID to the data
+  });
+
+  // Assuming your tasks are stored in a 'tasks' collection
+  const tasksCollectionRef = collection(firestore, "tasks");
+  // Fetch tasks and listen for real-time updates
+  const { status: tasksStatus, data: tasksData } = useFirestoreCollectionData(tasksCollectionRef, {
+    idField: 'id'  // Automatically adds document ID to the data
+  });
+
+  // Assuming your columns are stored in a 'columns' collection
+  const columnsCollectionRef = collection(firestore, "columns");
+  // Fetch columns and listen for real-time updates
+  const { status: columnsStatus, data: columnsData } = useFirestoreCollectionData(columnsCollectionRef, {
+    idField: 'id'
+  });
+  
+  // const { kanbanData, updateKanbanData } = useContext(KanbanContext);
 
   const moveTask = (
     taskId: string,
@@ -60,9 +81,9 @@ function Board() {
         display="flex"
         justifyContent="space-around"
         padding="20px"
-        flexDirection={{ base: "column", md: "row" }} // Stack vertically on small screens, horizontally on medium and up
-        width="100%" // Fill the entire width
-        overflowX="auto" // Allows scrolling on smaller screens
+        flexDirection={{ base: "column", md: "row" }}
+        width="100%" 
+        overflowX="auto"
       >
         {columnsOrder.map((columnName) => (
           <Column

@@ -1,10 +1,8 @@
-
 import Board from "./kanban/Board";
-import { useUser } from 'reactfire';
-import { SignIn } from './components/SignIn';
+import { useUser } from "reactfire";
+import { SignIn } from "./components/SignIn";
 
 const Dashboard = () => {
-
   const { status, data: user } = useUser();
 
   return user ? (
@@ -13,7 +11,8 @@ const Dashboard = () => {
       <Board />
     </div>
   ) : (
-  <SignIn /> );
+    <SignIn />
+  );
 };
 
 export default Dashboard;

@@ -1,4 +1,4 @@
-import { CardType, ColumnType, KanbanBoardType } from "./DataType";
+import { CardType, ColumnType, BoardType } from "./DataType";
 
 export interface IDatabaseService {
   fetchTasks: () => Promise<CardType[]>;

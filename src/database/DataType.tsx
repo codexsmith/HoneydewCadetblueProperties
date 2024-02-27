@@ -1,7 +1,6 @@
 import { Object as tstb } from "ts-toolbelt"; //https://millsp.github.io/ts-toolbelt/
 //TODO implement recoil
 
-
 export interface CardType {
   id: string;
   text: string;
@@ -13,7 +12,7 @@ export interface ColumnType {
   title: string;
 }
 
-export interface KanbanBoardType {
+export interface BoardType {
   id: string;
   title: string;
   cards: CardType[];

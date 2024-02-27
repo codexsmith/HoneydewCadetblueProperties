@@ -1,16 +1,11 @@
 import React from "react";
 import { useDrag } from "react-dnd";
-import { CardType } from "../database/DataType";
 import { Card, CardBody, CardFooter, CardHeader } from "@chakra-ui/react";
 
-interface TaskProps {
-  task: CardType;
-}
-
-function Task({ task }: TaskProps) {
+function Task({ task, column }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "task",
-    item: { id: task.id, sourceColumn: task.column },
+    item: { id: task.id, sourceColumnId: column },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),

@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase/firestore';
 import { FirebaseAppProvider, FirestoreProvider } from 'reactfire';
 
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <FirebaseAppProvider firebaseConfig={firebaseConfig} suspense={true}>
       {/* <FirestoreProvider sdk={getFirestore()}> */}

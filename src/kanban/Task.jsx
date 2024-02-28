@@ -23,8 +23,11 @@ function Task({ task, column }) {
       }}
       width="100%" // Ensure each task fills the width of its column
     >
-      {/* <CardHeader>Header</CardHeader> */}
-      <CardBody>{task.text}</CardBody>
+      <CardHeader>{task.name}</CardHeader>
+      <CardBody>
+        <div>{task.text}</div>
+        <div>{task.description}</div>
+        </CardBody>
       {/* <CardFooter>footer</CardFooter> */}
     </Card>
   );

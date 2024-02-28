@@ -47,6 +47,7 @@ function Column({ column, tasks, moveTask, moveColumn }) {
       isDragging: !!monitor.isDragging(), // Collect dragging state
     }),
   }));
+
   // const [{ isDragging }, dragColumn] = useDrag(
   //   () => ({
   //     type: "column",
@@ -73,13 +74,14 @@ function Column({ column, tasks, moveTask, moveColumn }) {
       const hoverId = column.id; // ID of the target column
 
       if (draggedId === hoverId) {
+        console.log("DND columns are the same");
         return; // Exit if the columns are the same
       }
 
       moveColumn(draggedId, hoverId); // Perform the column reorder operation
       item.id = hoverId; // Update the dragged item's ID to the new position
     },
-  })); // React to changes in column
+  })); // React to changes in column  
 
   // const [, dropColumn] = useDrop(
   //   () => ({

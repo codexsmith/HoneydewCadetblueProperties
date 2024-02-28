@@ -75,6 +75,8 @@ function Board() {
   const moveTask = async (taskId, sourceColumnId, targetColumnId) => {
     // References to the source and target columns
     const targetColumnRef = doc(firestore, "columns", targetColumnId);
+    const sourceColumnRef = doc(firestore, "columns", sourceColumnId);
+
     const boardRef = doc(firestore, "boards", boardId);
 
     // Find the specific mapping document for the task within the given board
@@ -83,7 +85,7 @@ function Board() {
       mappingsRef,
       where("cardRef", "==", taskId),
       where("boardRef", "==", boardRef),
-      where("columnRef", "==", sourceColumnId) // Ensure we're updating the correct current column
+      where("columnRef", "==", sourceColumnRef) // Ensure we're updating the correct current column
     );
 
     const querySnapshot = await getDocs(q);
@@ -111,7 +113,32 @@ function Board() {
     });
   };
 
-  const moveColumn = (draggedColumnName, hoverColumnName) => {
+
+  const moveColumn = async (draggedColumnId, hoverColumnId) => {
+    // Assuming you have the board ID
+    
+    const boardDocRef = doc(firestore, "boards", boardId);
+    
+    // Calculate the new order based on the draggedColumnId and hoverColumnId
+    // This is a simplified example; you'll need to implement the logic to
+    // actually reorder the array based on the drag and drop operation.
+    const newColumnOrder = [...theBoard.columnOrder];
+    const fromIndex = newColumnOrder.indexOf(draggedColumnId);
+    const toIndex = newColumnOrder.indexOf(hoverColumnId);
+    if (fromIndex >= 0 && toIndex >= 0) {
+      newColumnOrder.splice(fromIndex, 1); // Remove the dragged column from its original position
+      newColumnOrder.splice(toIndex, 0, draggedColumnId); // Insert it before the hover column
+    }
+  
+    // Update the board document in Firestore
+    await updateDoc(boardDocRef, {
+      columnOrder: newColumnOrder
+    });
+  };
+  
+
+  // const moveColumn = (draggedColumnName, hoverColumnName) => {
+    
     // const dragIndex = columnsOrder.indexOf(draggedColumnName);
     // const hoverIndex = columnsOrder.indexOf(hoverColumnName);
     // if (dragIndex === hoverIndex) {
@@ -122,8 +149,8 @@ function Board() {
     // newColumnsOrder.splice(hoverIndex, 0, draggedColumnName);
     // updateKanbanData({ columnOrder: newColumnsOrder });
     // setColumnsOrder(newColumnsOrder);
-    return;
-  };
+  //   return;
+  // };
 
   if (
     boardData.length > 0 &&
@@ -148,8 +175,9 @@ function Board() {
           overflowX="auto"
         >
           {theBoard.columnOrder.map((columnId) => {
+            let targetColumnRef = doc(firestore, "columns", columnId);
             let bccmap = boardColumnCardMap
-              .filter((t) => t.columnRef === columnId)
+              .filter((t) => t.columnRef.id == targetColumnRef.id)
               .map((filteredMapping) => filteredMapping.cardRef);
 
             return (

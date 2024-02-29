@@ -21,13 +21,13 @@ function Task({ task, column }) {
         backgroundColor: "#ddd",
         cursor: "move",
       }}
-      width="100%" // Ensure each task fills the width of its column
+      width="100%"
     >
       <CardHeader>{task.name}</CardHeader>
       <CardBody>
         <div>{task.text}</div>
         <div>{task.description}</div>
-        </CardBody>
+      </CardBody>
       {/* <CardFooter>footer</CardFooter> */}
     </Card>
   );

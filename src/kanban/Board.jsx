@@ -1,10 +1,8 @@
-import React, { useRef, useState } from "react";
-import { DndProvider, useDrop } from "react-dnd";
+import React, { useEffect, useState } from "react";
+import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { KanbanContext } from "./KanbanContext";
-import { useContext } from "react";
 import Column from "./Column";
-import { Box } from "@chakra-ui/react";
+import { Box, Button } from "@chakra-ui/react";
 import { useFirestore, useFirestoreCollectionData } from "reactfire";
 import {
   collection,
@@ -13,79 +11,90 @@ import {
   doc,
   getDocs,
   updateDoc,
+  addDoc,
+  arrayUnion,
 } from "firebase/firestore";
 
 function Board() {
   const firestore = useFirestore();
-  const [boardId, setBoardId] = useState();
+  const [board, setBoard] = useState();
 
-  // First query to fetch the board
   const boardCollectionRef = collection(firestore, "boards");
   const { status: boardStatus, data: boardData } = useFirestoreCollectionData(
     boardCollectionRef,
     {
-      idField: "id", // Automatically adds document ID to the data
+      idField: "id",
     }
   );
+  useEffect(() => {
+    setBoard(boardData[0]);
+  }, [boardData]);
 
   let boardColumnCardMap = [];
-  let mappingsStatus = "loading";
-
-  // Conditional logic to ensure boardData is loaded before querying mappings
+  let boardColumnCardMapStatus = "loading";
   if (boardStatus === "success" && boardData.length > 0) {
     const mappingsRef = collection(firestore, "boardcolumncardmapping");
-    // Assuming you want to query mappings for the first board's ID
-    if (!boardId) {
-      setBoardId(boardData[0].id);
+    if (!board) {
+      //TODO ADD dropdown for user select board
+      setBoard(boardData[0]);
     }
 
     const boardRef = doc(firestore, "boards", boardData[0].id);
-
     const q = query(mappingsRef, where("boardRef", "==", boardRef));
-
     const { status: innerStatus, data: innerData } = useFirestoreCollectionData(
       q,
       { idField: "id" }
     );
 
     boardColumnCardMap = innerData;
-    mappingsStatus = innerStatus;
+    boardColumnCardMapStatus = innerStatus;
   }
 
-  // Assuming your tasks are stored in a 'tasks' collection
   const cardsCollectionRef = collection(firestore, "cards");
-  // Fetch tasks and listen for real-time updates
   const { status: cardsStatus, data: cardsData } = useFirestoreCollectionData(
     cardsCollectionRef,
     {
-      idField: "id", // Automatically adds document ID to the data
+      idField: "id",
     }
   );
 
-  // Assuming your columns are stored in a 'columns' collection
   const columnsCollectionRef = collection(firestore, "columns");
-  // Fetch columns and listen for real-time updates
   const { status: columnsStatus, data: columnsData } =
     useFirestoreCollectionData(columnsCollectionRef, {
       idField: "id",
     });
 
-  // const { kanbanData, updateKanbanData } = useContext(KanbanContext);
+  const createNewColumn = async () => {
+    try {
+      // Step 1: Create a new column
+      const newColumnRef = await addDoc(collection(firestore, "columns"), {
+        title: "New Column", // Set initial properties for the column
+        // Add any other column initialization properties here
+      });
+
+      // Step 2: Update the board's columnOrder to include the new column
+      const boardDocRef = doc(firestore, "boards", board.id); // Assuming `board` is your current board state
+
+      const updatedColumnOrder = [newColumnRef.id, ...board.columnOrder];
+      await updateDoc(boardDocRef, { columnOrder: updatedColumnOrder });
+      
+    } catch (error) {
+      console.error("Error creating column: ", error);
+    }
+  };
 
   const moveTask = async (taskId, sourceColumnId, targetColumnId) => {
-    // References to the source and target columns
     const targetColumnRef = doc(firestore, "columns", targetColumnId);
     const sourceColumnRef = doc(firestore, "columns", sourceColumnId);
 
-    const boardRef = doc(firestore, "boards", boardId);
+    const boardRef = doc(firestore, "boards", board.id);
 
-    // Find the specific mapping document for the task within the given board
     const mappingsRef = collection(firestore, "boardcolumncardmapping");
     const q = query(
       mappingsRef,
       where("cardRef", "==", taskId),
       where("boardRef", "==", boardRef),
-      where("columnRef", "==", sourceColumnRef) // Ensure we're updating the correct current column
+      where("columnRef", "==", sourceColumnRef)
     );
 
     const querySnapshot = await getDocs(q);
@@ -94,7 +103,6 @@ function Board() {
       return;
     }
 
-    // Update the found mapping document(s) to point to the new column
     querySnapshot.forEach((docSnapshot) => {
       const mappingDocRef = doc(
         firestore,
@@ -113,44 +121,21 @@ function Board() {
     });
   };
 
-
   const moveColumn = async (draggedColumnId, hoverColumnId) => {
-    // Assuming you have the board ID
-    
-    const boardDocRef = doc(firestore, "boards", boardId);
-    
-    // Calculate the new order based on the draggedColumnId and hoverColumnId
-    // This is a simplified example; you'll need to implement the logic to
-    // actually reorder the array based on the drag and drop operation.
-    const newColumnOrder = [...theBoard.columnOrder];
+    const boardDocRef = doc(firestore, "boards", board.id);
+
+    const newColumnOrder = board?.columnOrder;
     const fromIndex = newColumnOrder.indexOf(draggedColumnId);
     const toIndex = newColumnOrder.indexOf(hoverColumnId);
     if (fromIndex >= 0 && toIndex >= 0) {
-      newColumnOrder.splice(fromIndex, 1); // Remove the dragged column from its original position
-      newColumnOrder.splice(toIndex, 0, draggedColumnId); // Insert it before the hover column
+      newColumnOrder.splice(fromIndex, 1); // Remove
+      newColumnOrder.splice(toIndex, 0, draggedColumnId); // Insert
     }
-  
-    // Update the board document in Firestore
+
     await updateDoc(boardDocRef, {
-      columnOrder: newColumnOrder
+      columnOrder: newColumnOrder,
     });
   };
-  
-
-  // const moveColumn = (draggedColumnName, hoverColumnName) => {
-    
-    // const dragIndex = columnsOrder.indexOf(draggedColumnName);
-    // const hoverIndex = columnsOrder.indexOf(hoverColumnName);
-    // if (dragIndex === hoverIndex) {
-    //   return;
-    // }
-    // const newColumnsOrder = [...columnsOrder];
-    // newColumnsOrder.splice(dragIndex, 1);
-    // newColumnsOrder.splice(hoverIndex, 0, draggedColumnName);
-    // updateKanbanData({ columnOrder: newColumnsOrder });
-    // setColumnsOrder(newColumnsOrder);
-  //   return;
-  // };
 
   if (
     boardData.length > 0 &&
@@ -160,10 +145,9 @@ function Board() {
     columnsData.length > 0 &&
     columnsStatus === "success" &&
     boardColumnCardMap.length > 0 &&
-    mappingsStatus === "success"
+    boardColumnCardMapStatus === "success" &&
+    board != undefined
   ) {
-    let theBoard = boardData[0];
-
     return (
       <DndProvider backend={HTML5Backend}>
         <Box
@@ -174,7 +158,7 @@ function Board() {
           width="100%"
           overflowX="auto"
         >
-          {theBoard.columnOrder.map((columnId) => {
+          {board.columnOrder.map((columnId) => {
             let targetColumnRef = doc(firestore, "columns", columnId);
             let bccmap = boardColumnCardMap
               .filter((t) => t.columnRef.id == targetColumnRef.id)
@@ -183,7 +167,11 @@ function Board() {
             return (
               <Column
                 key={columnId}
-                column={columnsData.filter((c) => c.id === columnId)[0]}
+                columnName={
+                  columnsData.filter((col) => col.id == targetColumnRef.id)[0]
+                    .title
+                }
+                columnId={targetColumnRef.id}
                 tasks={cardsData.filter((task) => {
                   return bccmap.indexOf(task.id) != -1;
                 })}
@@ -193,6 +181,15 @@ function Board() {
             );
           })}
           ;
+          <Button
+            onClick={createNewColumn}
+            colorScheme="teal"
+            position="absolute"
+            bottom="20px"
+            left="20px"
+          >
+            + Add Column
+          </Button>
         </Box>
       </DndProvider>
     );

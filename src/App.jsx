@@ -1,8 +1,10 @@
 import React from "react";
-import { ChakraProvider, Box } from "@chakra-ui/react";
+import { Box, ChakraProvider } from "@chakra-ui/react";
+import { Global } from "@emotion/react";
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Sidebar from "./Sidebar";
-import Dashboard from "./Dashboard";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
 // import { KanbanProvider } from "./kanban/KanbanContext";
 import { getFirestore } from "firebase/firestore";
 import { FirestoreProvider, useFirebaseApp, AuthProvider } from "reactfire";
@@ -22,16 +24,11 @@ function App() {
           <Router>
             <Box display="flex">
               <Sidebar />
-              <main
-                style={{
-                  width: "100%", // Fill the entire width
-                }}
-              >
-                <Routes>
-                  {/* Replace Switch with Routes */}
-                  <Route path="/" element={<Dashboard />} />
-                </Routes>
-              </main>
+              <Box flex="1" overflow="auto" height="100vh">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                  </Routes>
+              </Box>
             </Box>
           </Router>
         </ChakraProvider>

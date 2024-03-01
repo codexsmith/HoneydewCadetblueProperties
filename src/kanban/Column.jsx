@@ -1,10 +1,12 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import Task from "./Task";
 import { Box, Text } from "@chakra-ui/react";
+import EditableTitle from "../components/EditableTitle";
 
 function Column({ columnName, columnId, tasks, moveTask, moveColumn }) {
   const ref = useRef(null);
+  const [editMode, setEditMode] = useState(false);
 
   const [, dropTask] = useDrop(() => ({
     accept: "task",
@@ -38,6 +40,20 @@ function Column({ columnName, columnId, tasks, moveTask, moveColumn }) {
   dropTask(ref);
   dragColumn(dropColumn(ref));
 
+  const handleDoubleClick = () => {
+    setEditMode(true);
+  };
+
+  const handleTitleSubmit = (newTitle) => {
+    // Here, you would update the column's title in your backend or state
+    console.log(`New title for column ${columnId}: ${newTitle}`);
+    setEditMode(false);
+  };
+
+  const handleCancel = () => {
+    setEditMode(false);
+  };
+
   return (
     <Box
       ref={ref}
@@ -55,9 +71,19 @@ function Column({ columnName, columnId, tasks, moveTask, moveColumn }) {
       display="flex"
       flexDirection="column"
     >
-      <Text fontSize="xl" fontWeight="bold" mb={4}>
-        {columnName} - {columnId}
-      </Text>
+      <span onDoubleClick={handleDoubleClick}>
+        {editMode ? (
+          <EditableTitle
+            title={columnName}
+            onSubmit={handleTitleSubmit}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <Text fontSize="xl" fontWeight="bold" mb={4}>
+            {columnName} - {columnId}
+          </Text>
+        )}
+      </span>
 
       {tasks?.length > 0 &&
         tasks?.map((task) => (

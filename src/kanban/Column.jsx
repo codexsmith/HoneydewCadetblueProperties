@@ -1,10 +1,19 @@
 import React, { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import Task from "./Task";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Text, IconButton, Flex } from "@chakra-ui/react";
+import { AddIcon } from "@chakra-ui/icons";
 import EditableTitle from "../components/EditableTitle";
 
-function Column({ columnName, columnId, tasks, moveTask, moveColumn }) {
+function Column({
+  columnName,
+  columnId,
+  tasks,
+  moveTask,
+  moveColumn,
+  createTask,
+  moveTaskWithinColumn,
+}) {
   const ref = useRef(null);
   const [editMode, setEditMode] = useState(false);
 
@@ -71,24 +80,59 @@ function Column({ columnName, columnId, tasks, moveTask, moveColumn }) {
       display="flex"
       flexDirection="column"
     >
-      <span onDoubleClick={handleDoubleClick}>
-        {editMode ? (
-          <EditableTitle
-            title={columnName}
-            onSubmit={handleTitleSubmit}
-            onCancel={handleCancel}
+      <Flex justifyContent="space-between">
+        <div onDoubleClick={handleDoubleClick}>
+          {editMode ? (
+            <EditableTitle
+              style={{ width: "100%" }}
+              title={columnName}
+              onSubmit={handleTitleSubmit}
+              onCancel={handleCancel}
+            />
+          ) : (
+            <Text fontSize="xl" fontWeight="bold" mb={4}>
+              {columnName} - {columnId}
+            </Text>
+          )}
+        </div>
+        <Box
+          display="flex"
+          flexDirection="column"
+          justifyContent="flex-start"
+          height="100%"
+        >
+          <IconButton
+            aria-label="Add task"
+            icon={<AddIcon />}
+            size="sm"
+            onClick={createTask}
+            variant="ghost"
           />
-        ) : (
-          <Text fontSize="xl" fontWeight="bold" mb={4}>
-            {columnName} - {columnId}
-          </Text>
-        )}
-      </span>
-
+        </Box>
+      </Flex>
       {tasks?.length > 0 &&
-        tasks?.map((task) => (
-          <Task key={task.id} task={task} column={columnId} />
-        ))}
+        tasks
+          ?.sort((a, b) => {
+            // Convert null or undefined to a large number to ensure they end up at the end
+            let orderA =
+              a.orderInColumn === null || a.orderInColumn === undefined
+                ? Infinity
+                : a.orderInColumn;
+            let orderB =
+              b.orderInColumn === null || b.orderInColumn === undefined
+                ? Infinity
+                : b.orderInColumn;
+
+            return orderA - orderB;
+          })
+          .map((task) => (
+            <Task
+              key={task.id}
+              task={task}
+              column={columnId}
+              moveTaskWithinColumn={moveTaskWithinColumn}
+            />
+          ))}
     </Box>
   );
 }

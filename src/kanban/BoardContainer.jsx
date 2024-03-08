@@ -1,5 +1,6 @@
 import React from "react";
 import Board from "./Board";
+import { Box } from "@chakra-ui/react";
 
 function BoardContainer() {
   //   const firestore = useFirestore();

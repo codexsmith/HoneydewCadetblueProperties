@@ -54,6 +54,16 @@ function Sidebar() {
   const renderNavLinks = () => (
     <List spacing={3}>
       <ListItem>
+        <ChakraLink as={Link} to="/">
+          Dashbaord
+        </ChakraLink>
+      </ListItem>
+      <ListItem>
+        <ChakraLink as={Link} to="/stocks">
+          Stocks
+        </ChakraLink>
+      </ListItem>
+      <ListItem>
         <ChakraLink as={Link} to="/explore">
           Explore
         </ChakraLink>

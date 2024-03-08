@@ -128,7 +128,27 @@ function Board({ boardId }) {
     kanbanBoard.columnOrder = newColumnOrder;
   };
 
-  if (
+  const createNewTask = async (columnId) => {
+    try {
+      // Step 1: Create a new task in the 'cards' collection
+      const newTaskRef = await addDoc(cardsCollectionRef, {
+        name: "New Task", // Set your initial task properties here
+        description: "test", // Example additional field
+        orderInColumn: "0",
+      });
+
+      // Step 2: Update the board-column-card mapping to include the new task
+      await addDoc(mappingsRef, {
+        cardRef: newTaskRef.id, // Reference to the new task document
+        columnRef: doc(firestore, "columns", columnId), // Reference to the column document
+        boardRef: boardRef, // Reference to the current board
+      });
+    } catch (error) {
+      console.error("Error creating task: ", error);
+    }
+  };
+
+  const dataIsReady =
     boardStatus === "success" &&
     cardsData.length > 0 &&
     cardsStatus === "success" &&
@@ -136,18 +156,22 @@ function Board({ boardId }) {
     columnsStatus === "success" &&
     boardColumnCardMap.length > 0 &&
     boardColumnCardMapStatus === "success" &&
-    kanbanBoard != undefined
-  ) {
+    kanbanBoard !== undefined;
+
+  if (dataIsReady) {
     return (
       <Card
+        m="0 1px"
         display="flex"
         flex="1"
         flexDirection="column"
+        overflow="auto"
+        height="100vh"
         boxShadow="md"
         p="0"
         borderRadius="md"
-        width="fit-content"
-        height="99%"
+        minwidth="fit-content"
+        minHeight="fit-content"
       >
         <CardHeader>
           <Heading size="lg" m="4">
@@ -203,6 +227,7 @@ function Board({ boardId }) {
                     })}
                     moveTask={moveTask}
                     moveColumn={moveColumn}
+                    createTask={() => createNewTask(columnId)}
                   />
                 );
               })}

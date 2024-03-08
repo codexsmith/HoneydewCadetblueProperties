@@ -1,6 +1,6 @@
 import React, { createContext, useState, ReactNode } from "react";
 // import { useDatabaseService } from "../database/FirebaseService";
-import { KanbanContextType } from "../database/DataType";
+import { KanbanContextType } from "../data/DataType";
 
 const initialKanbanData = {
   tasks: [

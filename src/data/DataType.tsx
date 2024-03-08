@@ -4,7 +4,7 @@ import { Object as tstb } from "ts-toolbelt"; //https://millsp.github.io/ts-tool
 export interface CardType {
   id: string;
   text: string;
-  column: string;
+  orderInColumn: number;
 }
 
 export interface ColumnType {

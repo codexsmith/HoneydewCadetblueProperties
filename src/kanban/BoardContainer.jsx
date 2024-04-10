@@ -1,6 +1,6 @@
 import React from "react";
 import Board from "./Board";
-import { Box } from "@chakra-ui/react";
+import KanbanBoard from "../dndkit/KanbanBoard";
 
 function BoardContainer() {
   //   const firestore = useFirestore();
@@ -10,12 +10,13 @@ function BoardContainer() {
   //     boardCollectionRef,
   //     {
   //       idField: "id",
-  //     }
+  //     }g  
   //   );
 
   const boardId = "kHs1NpKPB9Gf6Uv6mOuT";
 
-  return <Board boardId={boardId} />;
+  // return <Board boardId={boardId} />;
+  return <KanbanBoard boardId={boardId} />;
 }
 
 export default BoardContainer;

@@ -6,6 +6,10 @@ function StockChart() {
   const chart = useRef(null);
   const series = useRef(null);
 
+  //paste from cbchart.jsx current price & volume
+
+
+
   function oldchart() {
     if (!chart.current) {
       chart.current = createChart(chartContainerRef.current, {

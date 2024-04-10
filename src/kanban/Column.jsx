@@ -9,20 +9,13 @@ function Column({
   columnName,
   columnId,
   tasks,
-  moveTask,
+  moveTask: moveTaskBetweenColumns,
   moveColumn,
   createTask,
   moveTaskWithinColumn,
 }) {
   const ref = useRef(null);
   const [editMode, setEditMode] = useState(false);
-
-  const [, dropTask] = useDrop(() => ({
-    accept: "task",
-    drop: (item) => {
-      moveTask(item.id, item.sourceColumnId, columnId);
-    },
-  }));
 
   const [{ isDragging }, dragColumn] = useDrag(() => ({
     type: "column",
@@ -46,7 +39,7 @@ function Column({
     },
   }));
 
-  dropTask(ref);
+  // dropTask(ref);
   dragColumn(dropColumn(ref));
 
   const handleDoubleClick = () => {
@@ -62,7 +55,6 @@ function Column({
   const handleCancel = () => {
     setEditMode(false);
   };
-
   return (
     <Box
       ref={ref}
@@ -72,7 +64,7 @@ function Column({
       padding="10px"
       flex="1"
       opacity={isDragging ? 0.5 : 1}
-      bg="gray.100"
+      bg="blackalpha.900"
       p={4}
       m={2}
       width="100%"
@@ -130,6 +122,7 @@ function Column({
               key={task.id}
               task={task}
               column={columnId}
+              moveTaskBetweenColumns={moveTaskBetweenColumns}
               moveTaskWithinColumn={moveTaskWithinColumn}
             />
           ))}

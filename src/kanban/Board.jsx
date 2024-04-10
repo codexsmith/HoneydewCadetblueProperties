@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Column from "./Column";
-import { Box, Button } from "@chakra-ui/react";
+import { Box, Button, DarkMode } from "@chakra-ui/react";
 import {
   useFirestore,
   useFirestoreCollectionData,
@@ -28,6 +28,16 @@ import {
 
 function Board({ boardId }) {
   const firestore = useFirestore();
+  //insert refresh triggers to reduce unneccessary data calls
+  const [boardRefreshTrigger, setBoardRefreshTrigger] = useState(0);
+  const [mappingRefreshTrigger, setMappingRefreshTrigger] = useState(0);
+  const [cardRefreshTrigger, setCardRefreshTrigger] = useState(0);
+  const [columnRefreshTrigger, setcolumnRefreshTrigger] = useState(0);
+
+  const [boardData, setBoardData] = useState([]);
+  const [mappingData, setMappingData] = useState([]);
+  const [cardsState, setCardsState] = useState([]);
+  const [columnData, setcolumnData] = useState([]);
 
   const boardRef = useMemo(() => doc(firestore, "boards", boardId));
 
@@ -35,6 +45,7 @@ function Board({ boardId }) {
     boardRef,
     {
       idField: "id",
+      dependencies: [boardRefreshTrigger],
     }
   );
 
@@ -42,22 +53,40 @@ function Board({ boardId }) {
     collection(firestore, "boardcolumncardmapping")
   );
 
-  const q = query(mappingsRef, where("boardRef", "==", boardRef));
+  //inline query
+  //   const prizeListRef = firestore
+  //     .collection('prizes')
+  //     .limit(3)
+  //     .where('year', '==', year)
+  //     .where('weekNumber', '==', weekNumber);
+
+  // const  { status, data, error } = useFirestoreCollectionData(prizeListRef);
+
+  const mapping_q = query(mappingsRef, where("boardRef", "==", boardRef));
   const { status: boardColumnCardMapStatus, data: boardColumnCardMap } =
-    useFirestoreCollectionData(q, { idField: "id" });
+    useFirestoreCollectionData(mapping_q, {
+      idField: "id",
+      dependencies: [mappingRefreshTrigger],
+    });
 
   const cardsCollectionRef = useMemo(() => collection(firestore, "cards"));
   const { status: cardsStatus, data: cardsData } = useFirestoreCollectionData(
     cardsCollectionRef,
     {
       idField: "id",
+      dependencies: [cardRefreshTrigger],
     }
   );
+
+  useEffect(() => {
+    setCardsState(cardsData);
+  }, [cardsData]);
 
   const columnsCollectionRef = useMemo(() => collection(firestore, "columns"));
   const { status: columnsStatus, data: columnsData } =
     useFirestoreCollectionData(columnsCollectionRef, {
       idField: "id",
+      dependencies: [columnRefreshTrigger],
     });
 
   const createNewColumn = async () => {
@@ -77,7 +106,11 @@ function Board({ boardId }) {
     }
   };
 
-  const moveTask = async (taskId, sourceColumnId, targetColumnId) => {
+  const moveTaskBetweenColumns = async (
+    taskId,
+    sourceColumnId,
+    targetColumnId
+  ) => {
     const targetColumnRef = doc(firestore, "columns", targetColumnId);
     const sourceColumnRef = doc(firestore, "columns", sourceColumnId);
 
@@ -128,7 +161,60 @@ function Board({ boardId }) {
     kanbanBoard.columnOrder = newColumnOrder;
   };
 
-  const createNewTask = async (columnId) => {
+  const moveTaskWithinColumn = (
+    dragIndex,
+    hoverIndex,
+    sourceColumnId,
+    isDrop
+  ) => {
+    // Retrieve all tasks in the source column from the boardColumnCardMap and cardsData
+    const columnTasks = boardColumnCardMap
+      .filter((mapping) => mapping.columnRef.id === sourceColumnId)
+      .map((mapping) => {
+        const cardData = cardsState.find((card) => card.id === mapping.cardRef);
+        return {
+          ...cardData,
+          mappingId: mapping.id,
+        };
+      });
+
+    // Sort tasks by orderInColumn to ensure we're working with the correct order
+    columnTasks.sort((a, b) => a.orderInColumn - b.orderInColumn);
+
+    // Move the task within the array
+    const [removed] = columnTasks.splice(dragIndex, 1);
+    columnTasks.splice(hoverIndex, 0, removed);
+    // Update the orderInColumn for each task based on its new index
+
+    columnTasks.forEach((task, index) => {
+      task.orderInColumn = index;
+      // if (isDrop) {
+      const taskRef = doc(firestore, "cards", task.id);
+      updateDoc(taskRef, { orderInColumn: index });
+      // }
+    });
+
+    const updatedCardsData = cardsState.map((card) => {
+      // Find the updated task from columnTasks
+      const updatedTask = columnTasks.find((task) => task.id === card.id);
+      // If this card has been updated, return the updated task, else return the card as is
+      return updatedTask
+        ? { ...card, orderInColumn: updatedTask.orderInColumn }
+        : card;
+    });
+
+    // Now, update the state with the newly formed array
+
+    // cardsData.indexOf();
+
+    setCardsState(updatedCardsData);
+
+    // if (isDrop) {
+    //   setCardRefreshTrigger((prev) => prev + 1);
+    // }
+  };
+
+  const createNewTaskInFirebase = async (columnId) => {
     try {
       // Step 1: Create a new task in the 'cards' collection
       const newTaskRef = await addDoc(cardsCollectionRef, {
@@ -152,6 +238,7 @@ function Board({ boardId }) {
     boardStatus === "success" &&
     cardsData.length > 0 &&
     cardsStatus === "success" &&
+    cardsState &&
     columnsData.length > 0 &&
     columnsStatus === "success" &&
     boardColumnCardMap.length > 0 &&
@@ -172,6 +259,7 @@ function Board({ boardId }) {
         borderRadius="md"
         minwidth="fit-content"
         minHeight="fit-content"
+        bg={"lightgrey"}
       >
         <CardHeader>
           <Heading size="lg" m="4">
@@ -208,26 +296,26 @@ function Board({ boardId }) {
               }}
             >
               {kanbanBoard.columnOrder.map((columnId) => {
-                let targetColumnRef = doc(firestore, "columns", columnId);
-                let bccmap = boardColumnCardMap
+                const targetColumnRef = doc(firestore, "columns", columnId);
+                const bccmap = boardColumnCardMap
                   .filter((t) => t.columnRef.id == targetColumnRef.id)
                   .map((filteredMapping) => filteredMapping.cardRef);
 
+                const columns = columnsData.filter(
+                  (col) => col.id == targetColumnRef.id
+                )[0].title;
                 return (
                   <Column
                     key={columnId}
-                    columnName={
-                      columnsData.filter(
-                        (col) => col.id == targetColumnRef.id
-                      )[0].title
-                    }
+                    columnName={columns}
                     columnId={targetColumnRef.id}
-                    tasks={cardsData.filter((task) => {
+                    tasks={cardsState.filter((task) => {
                       return bccmap.indexOf(task.id) != -1;
                     })}
-                    moveTask={moveTask}
+                    moveTask={moveTaskBetweenColumns}
                     moveColumn={moveColumn}
                     createTask={() => createNewTask(columnId)}
+                    moveTaskWithinColumn={moveTaskWithinColumn}
                   />
                 );
               })}

@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "projectrlive-dev"
-  }
+    "default": "projectrlive-dev",
+    "local": "projectrlive-dev"
+  },
+  "targets": {},
+  "etags": {}
 }

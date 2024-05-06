@@ -19,13 +19,12 @@ admin.initializeApp();
 // Function to generate the necessary headers for authenticated requests
 const generateAuthHeaders = (method, path, body = "") => {
   const keyName = functions.config().coinbase.apikey;
-  const keySecret = functions.config().coinbase.apisecret;
-  console.log(keySecret);
+  const keysecret = functions.config().coinbase.apisecret;
+  console.log(keysecret);
   const url = "api.coinbase.com";
 
   const algorithm = "ES256";
   const uri = method + " " + url + path;
-
   const token = sign(
     {
       iss: "coinbase-cloud",
@@ -34,14 +33,14 @@ const generateAuthHeaders = (method, path, body = "") => {
       sub: keyName,
       uri,
     },
-    keySecret,
+    keysecret,
     {
       algorithm,
       header: {
         kid: keyName,
         nonce: crypto.randomBytes(16).toString("hex"),
       },
-    }
+    },
   );
 
   return { Authorization: "Bearer=" + token };
@@ -89,7 +88,7 @@ exports.fetchProductCandles = onRequest(
     } catch (error) {
       console.error(
         "Authentication error or Error fetching product candles:",
-        error
+        error,
       );
       if (error.code === "auth/id-token-expired") {
         res.status(403).send("Session expired");
@@ -97,5 +96,5 @@ exports.fetchProductCandles = onRequest(
         res.status(500).send("Internal Server Error");
       }
     }
-  }
+  },
 );

@@ -1,25 +1,12 @@
 import axios from "axios";
 import CryptoJS from "crypto-js";
 
-// organizations/b488b7aa-93c6-466d-af85-586663a5de16/apiKeys/b5fa3448-e022-400f-9d66-e11b5ac94d02
-// -----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAr7UDhGf7KeEluNCTarvegurntD24795roZMQR6Tkh2oAoGCCqGSM49\nAwEHoUQDQgAE2pBYtHmVNxMZpgrOIxD9YB1Blf1T/SIGiS/2PCKeDemifWtmVge0\nGuCCAD+UU+06jf++SbnYPpSl0ZsvXGNzuw==\n-----END EC PRIVATE KEY-----\n
-
-// Coinbase API information
-const API_KEY =
-  "organizations/b488b7aa-93c6-466d-af85-586663a5de16/apiKeys/b5fa3448-e022-400f-9d66-e11b5ac94d02";
-const API_SECRET =
-  "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAr7UDhGf7KeEluNCTarvegurntD24795roZMQR6Tkh2oAoGCCqGSM49\nAwEHoUQDQgAE2pBYtHmVNxMZpgrOIxD9YB1Blf1T/SIGiS/2PCKeDemifWtmVge0\nGuCCAD+UU+06jf++SbnYPpSl0ZsvXGNzuw==\n-----END EC PRIVATE KEY-----\n";
-
-
-  // firebase functions:config:set coinbase.api_key="organizations/b488b7aa-93c6-466d-af85-586663a5de16/apiKeys/b5fa3448-e022-400f-9d66-e11b5ac94d02" coinbase.api_secret="-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIAr7UDhGf7KeEluNCTarvegurntD24795roZMQR6Tkh2oAoGCCqGSM49\nAwEHoUQDQgAE2pBYtHmVNxMZpgrOIxD9YB1Blf1T/SIGiS/2PCKeDemifWtmVge0\nGuCCAD+UU+06jf++SbnYPpSl0ZsvXGNzuw==\n-----END EC PRIVATE KEY-----\n"
-
-
 // Function to generate the necessary headers for authenticated requests
 export const generateAuthHeaders = (method, path, body = "") => {
   const timestamp = Math.floor(Date.now() / 1000); // Timestamp in seconds
   const message = timestamp + method.toUpperCase() + path + body;
   const signature = CryptoJS.HmacSHA256(message, API_SECRET).toString(
-    CryptoJS.enc.Hex
+    CryptoJS.enc.Hex,
   );
 
   return {
@@ -65,7 +52,7 @@ export const getProductCandles = async (productId, params) => {
       {
         params,
       },
-      { headers }
+      { headers },
     );
     return response.data;
   } catch (error) {

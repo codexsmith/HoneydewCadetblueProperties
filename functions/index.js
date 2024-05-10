@@ -5,26 +5,17 @@ const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const axios = require("axios");
-// const CryptoJS = require("crypto-js");
-
-// Coinbase API information (ensure these are securely stored, e.g., in environment config)
-// const API_KEY = functions.config().coinbase.apikey;
-// const API_SECRET = functions.config().coinbase.api_secret;
-
-// const API_KEY = functions.config().coinbase.apikey;
-// const API_SECRET = functions.config().coinbase.apisecret;
 
 admin.initializeApp();
+const db = admin.firestore();
 
-// Function to generate the necessary headers for authenticated requests
-const generateAuthHeaders = (method, path, body = "") => {
+const generateCoinbaseAuthToken = (path) => {
   const keyName = functions.config().coinbase.apikey;
   const keysecret = functions.config().coinbase.apisecret;
-  console.log(keysecret);
   const url = "api.coinbase.com";
 
   const algorithm = "ES256";
-  const uri = method + " " + url + path;
+  const uri = "GET" + " " + url + path;
   const token = sign(
     {
       iss: "coinbase-cloud",
@@ -43,23 +34,34 @@ const generateAuthHeaders = (method, path, body = "") => {
     },
   );
 
-  return { Authorization: "Bearer=" + token };
+  return token;
+};
 
-  // const timestamp = Math.floor(Date.now() / 1000); // Timestamp in seconds
-  // const message = timestamp + method.toUpperCase() + path + body;
-  // const signature = CryptoJS.HmacSHA256(message, API_SECRET).toString(
-  //   CryptoJS.enc.Hex
-  // );
+//data key for candles is the timestamp
+// exports.fetchProductCandlesFromFirebase = onRequest();
 
-  // return {
-  //   "CB-ACCESS-KEY": API_KEY,
-  //   "CB-ACCESS-SIGN": signature,
-  //   "CB-ACCESS-TIMESTAMP": timestamp,
-  // };
+const storeProductCandlesInFirebase = async (candles, symbol) => {
+  const productCandlesCollection = db.collection(symbol + "Candles");
+  console.log(candles[0]);
+  const batch = db.batch();
+  const keys = ["Date", "Low", "High", "Open", "Close", "Volume"];
+
+  candles.forEach((element) => {
+    // Set the document ID to the timestamp value
+    const docRef = productCandlesCollection.doc(String(element[0]));
+    const elementAsObject = keys.reduce((obj, key, index) => {
+      obj[key] = element[index];
+      return obj;
+    }, {});
+    batch.set(docRef, element);
+  });
+
+  await batch.commit();
 };
 
 // Firebase Function to fetch Coinbase product candles
-exports.fetchProductCandles = onRequest(
+// `/api/v3/brokerage/products/${productId}/candles?start=${start}&end=${end}&granularity=${granularity}`;
+exports.fetchProductCandlesFromCoinbase = onRequest(
   { cors: ["localhost:5123"] },
   async (req, res) => {
     // Extract the ID token from Authorization header or query params
@@ -67,23 +69,32 @@ exports.fetchProductCandles = onRequest(
       req.headers.authorization.split("Bearer ")[1] || req.query.token;
 
     if (!idToken) {
-      return res.status(403).send("Unauthorized");
+      return res.status(401).send("Unauthorized");
     }
-
-    try {
+    https: try {
       // Verify the ID token
       // const decodedToken = await admin.auth().verifyIdToken(idToken);
       // const uid = decodedToken.uid; // You now have the user's UID if needed
 
-      // The rest of your function logic here
       const { productId, start, end, granularity } = req.query;
-      const method = "GET";
-      const path = `/v3/brokerage/products/${productId}/candles?start=${start}&end=${end}&granularity=${granularity}`;
-      const headers = generateAuthHeaders(method, path);
+      const path = `/products`;
+      const jwt = generateCoinbaseAuthToken(path);
+      const uri = `${path}/${productId}/candles?start=${start}&end=${end}&granularity=${granularity}`;
 
-      const response = await axios.get(`https://api.coinbase.com${path}`, {
-        headers,
-      });
+      const response = await axios.get(
+        `https://api.exchange.coinbase.com${uri}`,
+        {
+          headers: { Authorization: "Bearer " + jwt },
+        },
+      );
+
+      // Reference the collection and document where the data will be stored
+      // const productDocRef = db.collection("productCandles").doc(productId);
+
+      // Set the document data, or update if it exists
+      // await productDocRef.set({ candles }, { merge: true });
+      storeProductCandlesInFirebase(response.data, productId);
+
       res.send(response.data);
     } catch (error) {
       console.error(
@@ -98,3 +109,31 @@ exports.fetchProductCandles = onRequest(
     }
   },
 );
+
+//alternate code to sign request. may be useful later.
+const signRequestWIP = () => {
+  // create the json request object
+  var cb_access_timestamp = Date.now() / 1000; // in ms
+  var cb_access_passphrase = "...";
+  var secret = "PYPd1Hv4J6/7x...";
+  var requestPath = "/orders";
+  var body = JSON.stringify({
+    price: "1.0",
+    size: "1.0",
+    side: "buy",
+    product_id: "BTC-USD",
+  });
+  var method = "POST";
+
+  // create the prehash string by concatenating required parts
+  var message = cb_access_timestamp + method + requestPath + body;
+
+  // decode the base64 secret
+  var key = Buffer.from(secret, "base64");
+
+  // create a sha256 hmac with the secret
+  var hmac = crypto.createHmac("sha256", key);
+
+  // sign the require message with the hmac and base64 encode the result
+  var cb_access_sign = hmac.update(message).digest("base64");
+};

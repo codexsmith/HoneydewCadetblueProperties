@@ -15,7 +15,7 @@ const Stock = () => {
     const root = am5.Root.new("chartdiv");
     root.setThemes([am5themes_Animated.new(root)]);
     const stockChart = root.container.children.push(
-      am5stock.StockChart.new(root, {})
+      am5stock.StockChart.new(root, {}),
     );
     root.numberFormatter.set("numberFormat", "#,###.00");
 
@@ -25,7 +25,7 @@ const Stock = () => {
         panX: true,
         panY: true,
         height: am5.percent(70),
-      })
+      }),
     );
 
     const valueAxis = mainPanel.yAxes.push(
@@ -34,7 +34,7 @@ const Stock = () => {
         tooltip: am5.Tooltip.new(root, {}),
         numberFormat: "#,###.00",
         extraTooltipPrecision: 2,
-      })
+      }),
     );
 
     const dateAxis = mainPanel.xAxes.push(
@@ -43,7 +43,7 @@ const Stock = () => {
         groupData: true,
         renderer: am5xy.AxisRendererX.new(root, {}),
         tooltip: am5.Tooltip.new(root, {}),
-      })
+      }),
     );
 
     const valueSeries = mainPanel.series.push(
@@ -58,14 +58,14 @@ const Stock = () => {
         xAxis: dateAxis,
         yAxis: valueAxis,
         legendValueText: "{valueY}",
-      })
+      }),
     );
 
     stockChart.set("stockSeries", valueSeries);
     const valueLegend = mainPanel.plotContainer.children.push(
       am5stock.StockLegend.new(root, {
         stockChart: stockChart,
-      })
+      }),
     );
     valueLegend.data.setAll([valueSeries]);
 
@@ -76,7 +76,7 @@ const Stock = () => {
         xAxis: dateAxis,
         snapToSeries: [valueSeries],
         snapToSeriesBy: "y!",
-      })
+      }),
     );
 
     const scrollbar = mainPanel.set(
@@ -84,7 +84,7 @@ const Stock = () => {
       am5xy.XYChartScrollbar.new(root, {
         orientation: "horizontal",
         height: 50,
-      })
+      }),
     );
     stockChart.toolsContainer.children.push(scrollbar);
 
@@ -92,13 +92,13 @@ const Stock = () => {
       am5xy.GaplessDateAxis.new(root, {
         baseInterval: { timeUnit: "day", count: 1 },
         renderer: am5xy.AxisRendererX.new(root, {}),
-      })
+      }),
     );
 
     const sbValueAxis = scrollbar.chart.yAxes.push(
       am5xy.ValueAxis.new(root, {
         renderer: am5xy.AxisRendererY.new(root, {}),
-      })
+      }),
     );
 
     const sbSeries = scrollbar.chart.series.push(
@@ -107,7 +107,7 @@ const Stock = () => {
         valueXField: "Date",
         xAxis: sbDateAxis,
         yAxis: sbValueAxis,
-      })
+      }),
     );
 
     sbSeries.fills.template.setAll({
@@ -118,7 +118,8 @@ const Stock = () => {
     // Assign to ref to access in cleanup
     rootRef.current = root;
 
-    loadData("SHIB-USD", [valueSeries, sbSeries]);
+    // loadDataFromFirebase("SHIB-USD", [valueSeries, sbSeries]);
+    loadDataFromCoinbase("SHIB-USD", [valueSeries, sbSeries]);
 
     return () => {
       if (rootRef.current) {
@@ -127,12 +128,12 @@ const Stock = () => {
     };
   }, []);
 
-  const loadData = async (ticker, series) => {
+  const loadDataFromCoinbase = async (ticker, series) => {
     // Parameters setup
     const params = {
-      start: "01-01-2024",
-      end: "04-04-2024",
-      granularity: "ONE_DAY",
+      start: "2024-01-01",
+      end: "2024-01-03",
+      granularity: "86400",
     };
 
     try {
@@ -146,7 +147,7 @@ const Stock = () => {
       // Prepare the request URL with query parameters
       const query = new URLSearchParams(params).toString();
       // const requestUrl = `https://us-central1-your-project-id.cloudfunctions.net/fetchProductCandles?productId=${ticker}&${query}`;
-      const requestUrl = `http://localhost:5001/projectrlive-dev/us-central1/fetchProductCandles?productId=${ticker}&${query}`;
+      const requestUrl = `http://localhost:5001/projectrlive-dev/us-central1/fetchProductCandlesFromCoinbase?productId=${ticker}&${query}`;
 
       // Fetch the data with Authorization header
       const response = await fetch(requestUrl, {
@@ -164,16 +165,17 @@ const Stock = () => {
 
       // Process the data to fit AmCharts
       const processedData = candleData.map((candle) => ({
-        date: new Date(candle[0] * 1000), // Assuming the first element is the UNIX timestamp
-        open: candle[1], // Open price
-        high: candle[2], // High price
-        low: candle[3], // Low price
-        close: candle[4], // Close price
-        volume: candle[5], // Volume
+        Date: candle[0] * 1000,
+        Low: candle[1],
+        High: candle[2],
+        Open: candle[3],
+        Close: candle[4],
+        Volume: candle[5],
       }));
 
-      // Update series data
-      series.forEach((s) => s.data.setAll(processedData));
+      am5.array.each(series, function (item) {
+        item.data.setAll(processedData);
+      });
     } catch (error) {
       console.error("Error loading data:", error);
     }

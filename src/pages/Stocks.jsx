@@ -128,12 +128,15 @@ const Stock = () => {
     };
   }, []);
 
+  const generateStartEndDates = "";
+
   const loadDataFromCoinbase = async (ticker, series) => {
     // Parameters setup
     const params = {
-      start: "2024-01-01",
-      end: "2024-01-03",
-      granularity: "86400",
+      start: "2024-01-04",
+      end: "2024-05-13",
+      // granularity: "900", //15 minutes
+      granularity: "86400", //day
     };
 
     try {

@@ -5,8 +5,14 @@ const crypto = require("crypto");
 const { onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const { collection } = require("firebase/firestore");
 
-admin.initializeApp();
+var serviceAccount = require("./projectrlive-dev-firebase-adminsdk-9payn-164871da63.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://projectrlive-dev-default-rtdb.firebaseio.com",
+});
 const db = admin.firestore();
 
 const generateCoinbaseAuthToken = (path) => {
@@ -37,9 +43,36 @@ const generateCoinbaseAuthToken = (path) => {
   return token;
 };
 
-//data key for candles is the timestamp
-// exports.fetchProductCandlesFromFirebase = onRequest();
+const { Pool } = require("pg");
+const pool = new Pool({
+  //TODO env these
+  user: "postgres",
+  host: "localhost",
+  database: "projectr_local",
+  password: "Dream_319!",
+  port: 5432,
+});
 
+const storeProductCandlesInPostgres = async (candles, symbol) => {
+  const tableName = symbol.toLowerCase().replace("-", "") + "candles"; // ensure table name is appropriately formatted
+  console.log(tableName);
+  const keys = ["date", "low", "high", "open", "close", "volume"];
+  const values = candles.map((element) =>
+    keys.map((_, index) => element[index]),
+  );
+
+  const queryText = `INSERT INTO ${tableName} (${keys.join(", ")}) VALUES 
+    ${values
+      .map((value) => `(${value.map((v) => `'${v}'`).join(", ")})`)
+      .join(", ")} ON CONFLICT (date) DO NOTHING`;
+
+  try {
+    const res = await pool.query(queryText);
+    console.log("Insert successful:", res.rowCount);
+  } catch (err) {
+    console.error("Error executing query", err.stack);
+  }
+};
 const storeProductCandlesInFirebase = async (candles, symbol) => {
   const productCandlesCollection = db.collection(symbol + "Candles");
   console.log(candles[0]);
@@ -53,7 +86,7 @@ const storeProductCandlesInFirebase = async (candles, symbol) => {
       obj[key] = element[index];
       return obj;
     }, {});
-    batch.set(docRef, element);
+    batch.set(docRef, elementAsObject);
   });
 
   await batch.commit();
@@ -93,7 +126,8 @@ exports.fetchProductCandlesFromCoinbase = onRequest(
 
       // Set the document data, or update if it exists
       // await productDocRef.set({ candles }, { merge: true });
-      storeProductCandlesInFirebase(response.data, productId);
+      // storeProductCandlesInFirebase(response.data, productId);
+      storeProductCandlesInPostgres(response.data, productId);
 
       res.send(response.data);
     } catch (error) {
@@ -137,3 +171,52 @@ const signRequestWIP = () => {
   // sign the require message with the hmac and base64 encode the result
   var cb_access_sign = hmac.update(message).digest("base64");
 };
+
+const scaffoldFirebase = async () => {
+  try {
+    //platform data
+    //TODO
+    const boardcolumncardmapping = collection(db, "boardcolumncardmapping");
+    // let bccmTemplate = { boardRef : };
+    const boards = collection(db, "boards");
+    const cards = collection(db, "cards");
+    const columns = collection(db, "columns");
+    const tags = collection(db, "tags");
+    const userboardmappings = collection(db, "userboardmappings");
+    const users = collection(db, "users");
+
+    //stock data
+    const shibcandles = collection(db, "shibcandles");
+    const symbolTemplate = "SHIB-USD";
+    let candleTemplate = { symbol: symbolTemplate };
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+async function inferSchema() {
+  try {
+    // Retrieve all collections
+    const collections = await db.listCollections();
+
+    for (const collection of collections) {
+      const collectionName = collection.id;
+      const snapshot = await collection.limit(10).get();
+      const schemas = {};
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        Object.keys(data).forEach((key) => {
+          if (!schemas[key]) {
+            schemas[key] = typeof data[key];
+          }
+        });
+      });
+
+      console.log(`Inferred schema for collection ${collectionName}:`);
+      console.log(schemas);
+    }
+  } catch (error) {
+    console.error("Error inferring schema:", error);
+  }
+}

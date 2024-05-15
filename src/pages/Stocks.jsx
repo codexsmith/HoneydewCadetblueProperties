@@ -128,7 +128,17 @@ const Stock = () => {
     };
   }, []);
 
-  const generateStartEndDates = "";
+  const generateStartEndDates = (seedDate, interval) => {
+    let startDate,
+      endDate = "";
+
+    const maxCount = 275;
+
+    //given a seedDate and an interval
+    //calculate the endDate that is maxCount * interval away from seedDate
+
+    return { start: startDate, end: endDate };
+  };
 
   const loadDataFromCoinbase = async (ticker, series) => {
     // Parameters setup
